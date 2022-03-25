@@ -6,6 +6,8 @@ package no.group15.os;
  */
 public class Customer {
 
+    private CustomerState customerState;
+
     /**
      * Makes an instance of the Customer class.
      */
