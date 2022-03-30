@@ -8,16 +8,36 @@ public class Customer {
 
     private CustomerState customerState;
 
+    private String customerName;
+
     /**
      * Makes an instance of the Customer class.
      */
-    public Customer() {
+    public Customer(String customerName) {
+        checkString(customerName, "customer name");
+        this.customerName = customerName;
+        this.customerState = CustomerState.NEEDSCUT;
+    }
 
+    /**
+     * Gets the name of the customer.
+     * @return the name of the customer.
+     */
+    public String getCustomerName(){
+        return customerName;
+    }
+
+    /**
+     * Sets the customer state to a new value.
+     * @param customerState the new customer state.
+     */
+    public void setCustomerState(CustomerState customerState){
+        checkIfObjectIsNull(customerState, "customer state");
+        this.customerState = customerState;
     }
 
     /**
      * Checks if a string is of a valid format or not.
-     *
      * @param stringToCheck the string you want to check.
      * @param errorPrefix   the error the exception should have if the string is invalid.
      * @throws IllegalArgumentException gets thrown if the string to check is empty or null.
