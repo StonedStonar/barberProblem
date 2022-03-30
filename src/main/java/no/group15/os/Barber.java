@@ -4,25 +4,40 @@ import no.group15.os.exceptions.CouldNotAddCustomerException;
 import no.group15.os.exceptions.CouldNotGetCustomerException;
 import no.group15.os.exceptions.CouldNotRemoveCustomerException;
 
+import javax.swing.plaf.nimbus.State;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author Kenneth Johansen Misund.
  * @version 0.1
  */
-public class Barberer {
+public class Barber {
 
     List<Customer> customerList;
     private String salonName;
+    private State state;
 
 
     /**
-     * Makes an instance of the Barberer class.
+     * Makes an instance of the Barber class.
+     * @param salon
      */
-    public Barberer(String salon) {
-        this.customerList = new ArrayList<>(5);
+    public Barber(String salon) {
+        this.customerList = new ArrayList<>();
         checkString(salon, "salon name");
+    }
+
+    /**
+     * Makes sure that the customers have a delay before next customer get a cut. Delay set to 10 seconds.
+     */
+    public void cutHair() {
+        try {
+            TimeUnit.SECONDS.sleep(10);
+        } catch (InterruptedException interrupt) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     /**

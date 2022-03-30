@@ -1,16 +1,45 @@
 package no.group15.os;
 
 /**
- * @author Steinar Hjelle Midthus
+ * The Customer class holds the information for a customer.
+ * @author Kenneth Johansen Misund
  * @version 0.1
  */
 public class Customer {
 
+    private CustomerState state;
+    private String customerName;
+
     /**
      * Makes an instance of the Customer class.
      */
+
     public Customer() {
 
+    }
+
+    /**
+     * Gets the name of a customer.
+     * @return Customers name.
+     */
+    public String getCustomerName() {
+        return customerName;
+    }
+
+    /**
+     * Gets the state of a customer.
+     * @return customer state.
+     */
+    public CustomerState getCustomerState() {
+        return state;
+    }
+
+    /**
+     * Sets the customers state.
+     * @param state return state.
+     */
+    public void setState(CustomerState state) {
+        this.state = state;
     }
 
     /**
