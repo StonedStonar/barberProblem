@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
+ * Represents the barber class. The barber uses all the methods listed bellow.
  * @author Kenneth Johansen Misund.
  * @version 0.1
  */
@@ -24,9 +25,14 @@ public class Barber {
      * Makes an instance of the Barber class.
      * @param salon
      */
-    public Barber(String salon) {
-        this.customerList = new ArrayList<>();
+    public Barber(String salon, State state) {
         checkString(salon, "salon name");
+        this.salonName = salon;
+
+        checkString(salon, "state");
+        this.state = state;
+
+        this.customerList = new ArrayList<>();
     }
 
     /**

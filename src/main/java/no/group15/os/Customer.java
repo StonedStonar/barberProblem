@@ -14,8 +14,11 @@ public class Customer {
      * Makes an instance of the Customer class.
      */
 
-    public Customer() {
+    public Customer(String customerName, CustomerState state) {
+        checkString(customerName, "Name of customer");
+        this.customerName = customerName;
 
+        this.state = state;
     }
 
     /**

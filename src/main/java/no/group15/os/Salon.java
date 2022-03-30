@@ -1,6 +1,7 @@
 package no.group15.os;
 
 import no.group15.os.exceptions.CouldNotAddCustomerException;
+import no.group15.os.exceptions.CouldNotGetCustomerException;
 import no.group15.os.exceptions.CouldNotRemoveCustomerException;
 
 import java.util.LinkedList;
@@ -53,6 +54,14 @@ public class Salon {
         if (!this.customerList.remove(customer)){
             throw new CouldNotRemoveCustomerException("The customer with the name " + customer.getCustomerName() + " is not in the system");
         }
+    }
+
+    /**
+     * Gets the next customer to work with.
+     * @throws CouldNotGetCustomerException if we cannot get next customer.
+     */
+    public Customer getNextCustomer() throws IndexOutOfBoundsException {
+        return customerList.get(0);
     }
 
 
