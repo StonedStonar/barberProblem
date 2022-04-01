@@ -4,30 +4,74 @@ import no.group15.os.exceptions.CouldNotAddCustomerException;
 import no.group15.os.exceptions.CouldNotGetCustomerException;
 import no.group15.os.exceptions.CouldNotRemoveCustomerException;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * @author Steinar Hjelle Midthus
  * @version 0.1
  */
-public class Salon {
+public class Salon implements BarberObserver{
 
     private List<Customer> customerList;
+
+    private List<Barber> barbers;
 
     private String salonName;
 
     private boolean closed;
 
+    private int maxSize;
+
+    private ExecutorService executorService;
+
+    public static void main(String[] args) {
+
+        List<Barber> barbers = new ArrayList<>();
+        barbers.add(new Barber("Bjarne", State.LOOKINGFORWORK));
+        barbers.add(new Barber("Kjell", State.LOOKINGFORWORK));
+        Salon salon = new Salon("Man's breaking back", 5, barbers);
+        try {
+            salon.addCustomer(new Customer("Pepe", CustomerState.NEEDSCUT));
+            salon.addCustomer(new Customer("Leel", CustomerState.NEEDSCUT));
+            for (int i = 0; i < 5; i++){
+                salon.addCustomer(new Customer("Tom " + i, CustomerState.NEEDSCUT));
+            }
+            Thread.sleep(15000);
+            for (int i = 0; i < 5; i++){
+                salon.addCustomer(new Customer("Tom " + i + 5, CustomerState.NEEDSCUT));
+            }
+        }catch (CouldNotAddCustomerException | InterruptedException exception){
+            System.err.println("There is no more seats in this saloon.");
+        }
+    }
+
     /**
      * Makes an instance of the Salon class.
      * @param salonName the name of the salon.
+     * @param maxSize the max size of the salon.
+     * @param barbers a list with all the barbers.
      */
-    public Salon(String salonName) {
+    public Salon(String salonName, int maxSize, List<Barber> barbers) {
         checkString(salonName, "salon name");
-        this.customerList = new LinkedList<>();
+        checkIfNumberIsAboveZero(maxSize, "the max size");
+        checkIfObjectIsNull(barbers, "barbers");
+        this.maxSize = maxSize;
+        this.customerList = new ArrayList<>(maxSize);
+        this.barbers = barbers;
         this.salonName = salonName;
         this.closed = true;
+
+
+        //Makes all the barbers start.
+        this.executorService = Executors.newFixedThreadPool(barbers.size());
+        barbers.forEach(barber -> {
+            barber.addObserver(this);
+            executorService.submit(barber);
+        });
     }
 
     /**
@@ -35,13 +79,20 @@ public class Salon {
      * @param customer the customer to add.
      * @throws CouldNotAddCustomerException gets thrown if the customer could not be added.
      */
-    public void addCustomer(Customer customer) throws CouldNotAddCustomerException {
+    public synchronized void addCustomer(Customer customer) throws CouldNotAddCustomerException {
         checkIfObjectIsNull(customer, "customer");
-        if (!this.customerList.contains(customer)){
-            this.customerList.add(customer);
-        }else {
-            throw new CouldNotAddCustomerException("The customer with the name " + customer.getCustomerName());
+        if (customerList.size() < 5){
+            if (!this.customerList.contains(customer)){
+                this.customerList.add(customer);
+                notifyBarbersAboutNewCustomer();
+            }else {
+                throw new CouldNotAddCustomerException("The customer with the name " + customer.getCustomerName());
+            }
+        }else{
+            //Todo: Do something...
+            System.err.println("There is too many customers right now..");
         }
+
     }
 
     /**
@@ -59,9 +110,36 @@ public class Salon {
     /**
      * Gets the next customer to work with.
      * @throws CouldNotGetCustomerException if we cannot get next customer.
+     * @throws CouldNotRemoveCustomerException if the customer that is next could not be removed.
      */
-    public Customer getNextCustomer() throws IndexOutOfBoundsException {
-        return customerList.get(0);
+    public Customer getNextCustomer() throws CouldNotGetCustomerException, CouldNotRemoveCustomerException {
+        Customer customer = null;
+        if (!customerList.isEmpty()) {
+            customer = customerList.get(0);
+            removeCustomer(customer);
+        }else {
+            throw new CouldNotGetCustomerException("There is no more customers in queue.");
+        }
+
+        return customer;
+    }
+
+    /**
+     * Tells every barber that the saloon is closing.
+     */
+    private void closeSalon(){
+        barbers.forEach(Barber::goHome);
+    }
+
+    /**
+     * Checks if the number is above zero.
+     * @param number the number to check.
+     * @param prefix the shorthand name for the number.
+     */
+    private void checkIfNumberIsAboveZero(long number, String prefix){
+        if (number <= 0){
+            throw new IllegalArgumentException("The " + prefix + " cannot be less or equal to zero.");
+        }
     }
 
 
@@ -81,7 +159,6 @@ public class Salon {
 
     /**
      * Checks if an object is null.
-     *
      * @param object the object you want to check.
      * @param error  the error message the exception should have.
      * @throws IllegalArgumentException gets thrown if the object is null.
@@ -89,6 +166,31 @@ public class Salon {
     private void checkIfObjectIsNull(Object object, String error) {
         if (object == null) {
             throw new IllegalArgumentException("The " + error + " cannot be null.");
+        }
+    }
+
+    /**
+     * Notifies the barbers about a new customer at the door.
+     */
+    private void notifyBarbersAboutNewCustomer(){
+        barbers.stream().filter(barber -> barber.getState() == State.SLEEP).forEach(Barber::notifyBarber);
+        System.out.println("Notifies the barbers");
+    }
+
+    @Override
+    public void notifyObserver(Barber barber) {
+        checkIfObjectIsNull(barber, "barber");
+        try {
+            Thread.sleep(1000);
+            Customer customer = getNextCustomer();
+            barber.setCustomer(customer);
+            System.out.println(barber.getBarberName() + " the barberer gets " + customer.getCustomerName());
+        }catch (CouldNotGetCustomerException exception){
+            System.err.println("There is no customers left. ");
+        }catch (CouldNotRemoveCustomerException exception){
+            System.err.println("The customer could not be removed.");
+        } catch (InterruptedException exception) {
+            exception.printStackTrace();
         }
     }
 }

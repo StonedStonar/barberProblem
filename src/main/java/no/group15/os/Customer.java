@@ -8,7 +8,7 @@ package no.group15.os;
 public class Customer {
 
     private CustomerState state;
-    private String customerName;
+    private final String customerName;
 
     /**
      * Makes an instance of the Customer class.
@@ -16,6 +16,7 @@ public class Customer {
 
     public Customer(String customerName, CustomerState state) {
         checkString(customerName, "Name of customer");
+        checkIfObjectIsNull(state, "state");
         this.customerName = customerName;
 
         this.state = state;
@@ -42,6 +43,7 @@ public class Customer {
      * @param state return state.
      */
     public void setState(CustomerState state) {
+        checkIfObjectIsNull(state, "state");
         this.state = state;
     }
 

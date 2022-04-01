@@ -19,6 +19,11 @@ public enum State {
     /**
      * Represents the state when a person is done at work.
      */
-    FREEDOM
+    FREEDOM,
+
+    /**
+     * Represents the state when the barber looks for work.
+     */
+    LOOKINGFORWORK
 
 }

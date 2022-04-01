@@ -1,84 +1,119 @@
 package no.group15.os;
 
-import no.group15.os.exceptions.CouldNotAddCustomerException;
-import no.group15.os.exceptions.CouldNotGetCustomerException;
-import no.group15.os.exceptions.CouldNotRemoveCustomerException;
 
-import javax.swing.plaf.nimbus.State;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Represents the barber class. The barber uses all the methods listed bellow.
  * @author Kenneth Johansen Misund.
  * @version 0.1
  */
-public class Barber {
+public class Barber implements ObservableBarber, Runnable{
 
-    List<Customer> customerList;
-    private String salonName;
+    private final String barbererName;
+
     private State state;
+
+    private Customer customer;
+
+    private final List<BarberObserver> barberObserverList;
 
 
     /**
      * Makes an instance of the Barber class.
-     * @param salon
+     * @param name the name of this barberer.
      */
-    public Barber(String salon, State state) {
-        checkString(salon, "salon name");
-        this.salonName = salon;
+    public Barber(String name, State state) {
+        checkString(name, "salon name");
+        this.barbererName = name;
 
-        checkString(salon, "state");
+        checkIfObjectIsNull(state, "state");
         this.state = state;
-
-        this.customerList = new ArrayList<>();
+        this.barberObserverList = new ArrayList<>();
     }
+
+    /**
+     * Gets the name of the barber.
+     * @return the name of the barber.
+     */
+    public String getBarberName() {
+        return barbererName;
+    }
+
+    @Override
+    public synchronized void run(){
+            while (state != State.FREEDOM){
+                try {
+                    switch (state) {
+                        case LOOKINGFORWORK:
+                            alertObservers();
+                            break;
+                        case WORKING:
+                            cutHair();
+                            break;
+                        default:
+                            System.out.println(barbererName + " sees no customers and falls asleep.");
+                            wait();
+                            this.state = State.LOOKINGFORWORK;
+                            break;
+                    }
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+            System.out.println(barbererName + " goes home for the night.");
+    }
+
 
     /**
      * Makes sure that the customers have a delay before next customer get a cut. Delay set to 10 seconds.
      */
     public void cutHair() {
-        try {
-            TimeUnit.SECONDS.sleep(10);
-        } catch (InterruptedException interrupt) {
-            Thread.currentThread().interrupt();
+        if (customer != null){
+            try {
+                System.out.println("Cutting the hair of " + customer.getCustomerName() + ".");
+                Thread.sleep(2000);
+                this.customer = null;
+                this.state = State.LOOKINGFORWORK;
+            } catch (InterruptedException exception) {
+                exception.printStackTrace();
+            }
         }
     }
 
     /**
-     * Adds a customer to a list that could hold max 5 elements.
-     * @param customer to be added.
-     * @throws CouldNotAddCustomerException gets thrown if the customer could not be added.
+     * Makes the barber go home for the night.
      */
-    public void addCustomer(Customer customer) throws CouldNotAddCustomerException {
+    public synchronized void goHome(){
+        this.state = State.FREEDOM;
     }
 
     /**
-     * Remove a customer from the list that holds max 5 elements.
-     * @param customer to be removed form list.
-     * @throws CouldNotRemoveCustomerException gets thrown if the customer could not be removed.
+     * Gets the state of the barber.
+     * @return the state of this barber
      */
-    public void removeCustomer(Customer customer) throws CouldNotRemoveCustomerException {
-
+    public synchronized State getState(){
+        return state;
     }
 
     /**
-     * Gets the next customer from the list when called.
-     * @throws CouldNotGetCustomerException gets thrown when you couldn't get the next customer.
+     * Sets the customer of this barber.
+     * @param customer the customer to cut the hair of.
      */
-    public void getNextCustomer() throws CouldNotGetCustomerException {
-
+    public synchronized void setCustomer(Customer customer){
+        checkIfObjectIsNull(customer, "customer");
+        this.state = State.WORKING;
+        this.customer = customer;
     }
+
 
     /**
      * Checks if a string is of a valid format or not.
-     *
      * @param stringToCheck the string you want to check.
      * @param errorPrefix   the error the exception should have if the string is invalid.
      * @throws IllegalArgumentException gets thrown if the string to check is empty or null.
      */
-
     private void checkString(String stringToCheck, String errorPrefix) {
         checkIfObjectIsNull(stringToCheck, errorPrefix);
         if (stringToCheck.isEmpty()) {
@@ -88,7 +123,6 @@ public class Barber {
 
     /**
      * Checks if an object is null.
-     *
      * @param object the object you want to check.
      * @param error  the error message the exception should have.
      * @throws IllegalArgumentException gets thrown if the object is null.
@@ -97,5 +131,36 @@ public class Barber {
         if (object == null) {
             throw new IllegalArgumentException("The " + error + " cannot be null.");
         }
+    }
+
+    @Override
+    public void addObserver(BarberObserver barberObserver) {
+        checkIfObjectIsNull(barberObserver, "barber observer");
+        barberObserverList.add(barberObserver);
+    }
+
+    @Override
+    public void removeObserver(BarberObserver barberObserver) {
+        checkIfObjectIsNull(barberObserver, "barber observer");
+        barberObserverList.remove(barberObserver);
+    }
+
+    @Override
+    public void alertObservers() {
+        synchronized (Barber.class){
+            for (BarberObserver obs : barberObserverList) {
+                obs.notifyObserver(this);
+            }
+            if (this.state == State.LOOKINGFORWORK){
+                this.state = State.SLEEP;
+            }
+        }
+    }
+
+    /**
+     * Notifies this barber. Solves the "syncronized block" problem.
+     */
+    public synchronized void notifyBarber(){
+        this.notifyAll();
     }
 }

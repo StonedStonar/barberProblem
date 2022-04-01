@@ -21,7 +21,6 @@ public interface ObservableBarber {
 
     /**
      * Alerts the observers about a change.
-     * @param customer the customer that is done in the shop.
      */
-    void alertObservers(Customer customer);
+    void alertObservers();
 }

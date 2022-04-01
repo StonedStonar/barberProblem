@@ -9,7 +9,7 @@ public interface BarberObserver {
 
     /**
      * Notifies the observer that the barber is done with their task.
-     * @param customer the customer that is done.
+     * @param barber the customer that is done.
      */
-    void notifyObserver(Customer customer);
+    void notifyObserver(Barber barber);
 }
