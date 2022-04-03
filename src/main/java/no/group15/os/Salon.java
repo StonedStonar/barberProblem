@@ -9,6 +9,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * @author Steinar Hjelle Midthus
@@ -26,23 +29,36 @@ public class Salon implements BarberObserver{
 
     private int maxSize;
 
+    private Logger logger;
+
     private ExecutorService executorService;
 
     public static void main(String[] args) {
 
         List<Barber> barbers = new ArrayList<>();
+        Logger log = Logger.getLogger(Salon.class.getName());
+        ConsoleHandler handler = new ConsoleHandler();
+        handler.setLevel(Level.ALL);
+        log.addHandler(handler);
+        Barber.setConsole();
         barbers.add(new Barber("Bjarne", State.LOOKINGFORWORK));
-        barbers.add(new Barber("Kjell", State.LOOKINGFORWORK));
+        //barbers.add(new Barber("Kjell", State.LOOKINGFORWORK));
         Salon salon = new Salon("Man's breaking back", 5, barbers);
         try {
             salon.addCustomer(new Customer("Pepe", CustomerState.NEEDSCUT));
             salon.addCustomer(new Customer("Leel", CustomerState.NEEDSCUT));
-            for (int i = 0; i < 5; i++){
+            for (int i = 0; i < 3; i++){
                 salon.addCustomer(new Customer("Tom " + i, CustomerState.NEEDSCUT));
             }
             Thread.sleep(15000);
-            for (int i = 0; i < 5; i++){
-                salon.addCustomer(new Customer("Tom " + i + 5, CustomerState.NEEDSCUT));
+            System.out.println("Now adding the second batch of customers. - Will have 2 more customers that there is seat for.");
+            for (int i = 0; i < 7; i++){
+                salon.addCustomer(new Customer("Tom " + (i + 5), CustomerState.NEEDSCUT));
+            }
+            Thread.sleep(15000);
+            System.out.println("Now adding the third and last batch of customers. - Will only be 2 people.");
+            for (int i = 0; i < 2; i++){
+                salon.addCustomer(new Customer("Tom " + (i + 5), CustomerState.NEEDSCUT));
             }
         }catch (CouldNotAddCustomerException | InterruptedException exception){
             System.err.println("There is no more seats in this saloon.");
@@ -59,6 +75,8 @@ public class Salon implements BarberObserver{
         checkString(salonName, "salon name");
         checkIfNumberIsAboveZero(maxSize, "the max size");
         checkIfObjectIsNull(barbers, "barbers");
+        this.logger = Logger.getLogger(getClass().getName());
+        logger.setLevel(Level.ALL);
         this.maxSize = maxSize;
         this.customerList = new ArrayList<>(maxSize);
         this.barbers = barbers;
@@ -90,7 +108,7 @@ public class Salon implements BarberObserver{
             }
         }else{
             //Todo: Do something...
-            System.err.println("There is too many customers right now..");
+            logger.warning("There is too many customers right now..");
         }
 
     }
@@ -174,23 +192,20 @@ public class Salon implements BarberObserver{
      */
     private void notifyBarbersAboutNewCustomer(){
         barbers.stream().filter(barber -> barber.getState() == State.SLEEP).forEach(Barber::notifyBarber);
-        System.out.println("Notifies the barbers");
+        logger.fine("Notifies the barbers");
     }
 
     @Override
     public void notifyObserver(Barber barber) {
         checkIfObjectIsNull(barber, "barber");
         try {
-            Thread.sleep(1000);
             Customer customer = getNextCustomer();
             barber.setCustomer(customer);
-            System.out.println(barber.getBarberName() + " the barberer gets " + customer.getCustomerName());
+            logger.fine(barber.getBarberName() + " the barberer gets " + customer.getCustomerName());
         }catch (CouldNotGetCustomerException exception){
-            System.err.println("There is no customers left. ");
+            logger.fine("There is no customers left.");
         }catch (CouldNotRemoveCustomerException exception){
-            System.err.println("The customer could not be removed.");
-        } catch (InterruptedException exception) {
-            exception.printStackTrace();
+            logger.warning("The customer could not be removed.");
         }
     }
 }

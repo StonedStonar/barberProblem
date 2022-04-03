@@ -3,6 +3,9 @@ package no.group15.os;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Represents the barber class. The barber uses all the methods listed bellow.
@@ -11,26 +14,38 @@ import java.util.List;
  */
 public class Barber implements ObservableBarber, Runnable{
 
-    private final String barbererName;
+    private final String barberName;
 
     private State state;
 
     private Customer customer;
+
+    private final Logger logger;
 
     private final List<BarberObserver> barberObserverList;
 
 
     /**
      * Makes an instance of the Barber class.
-     * @param name the name of this barberer.
+     * @param name the name of this barber.
+     * @param state the state of this barber.
      */
     public Barber(String name, State state) {
+        this.logger = Logger.getLogger(getClass().getName());
         checkString(name, "salon name");
-        this.barbererName = name;
+        this.barberName = name;
+        logger.setLevel(Level.ALL);
 
         checkIfObjectIsNull(state, "state");
         this.state = state;
         this.barberObserverList = new ArrayList<>();
+    }
+
+    public static void setConsole(){
+        Logger logger = Logger.getLogger(Barber.class.getName());
+        ConsoleHandler handler = new ConsoleHandler();
+        handler.setLevel(Level.ALL);
+        logger.addHandler(handler);
     }
 
     /**
@@ -38,7 +53,7 @@ public class Barber implements ObservableBarber, Runnable{
      * @return the name of the barber.
      */
     public String getBarberName() {
-        return barbererName;
+        return barberName;
     }
 
     @Override
@@ -46,23 +61,20 @@ public class Barber implements ObservableBarber, Runnable{
             while (state != State.FREEDOM){
                 try {
                     switch (state) {
-                        case LOOKINGFORWORK:
-                            alertObservers();
-                            break;
-                        case WORKING:
-                            cutHair();
-                            break;
-                        default:
-                            System.out.println(barbererName + " sees no customers and falls asleep.");
+                        case LOOKINGFORWORK -> alertObservers();
+                        case WORKING -> cutHair();
+                        default -> {
+                            logger.fine(barberName + " sees no customers and falls asleep.");
                             wait();
+                            logger.fine(barberName + " wakes up after hearing the sound of a door opening");
                             this.state = State.LOOKINGFORWORK;
-                            break;
+                        }
                     }
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
             }
-            System.out.println(barbererName + " goes home for the night.");
+            logger.fine(barberName + " goes home for the night.");
     }
 
 
@@ -72,10 +84,10 @@ public class Barber implements ObservableBarber, Runnable{
     public void cutHair() {
         if (customer != null){
             try {
-                System.out.println("Cutting the hair of " + customer.getCustomerName() + ".");
-                Thread.sleep(2000);
-                this.customer = null;
+                logger.fine("Cutting the hair of " + customer.getCustomerName() + ".");
+                Thread.sleep(1000);
                 this.state = State.LOOKINGFORWORK;
+                this.customer = null;
             } catch (InterruptedException exception) {
                 exception.printStackTrace();
             }
@@ -93,7 +105,7 @@ public class Barber implements ObservableBarber, Runnable{
      * Gets the state of the barber.
      * @return the state of this barber
      */
-    public synchronized State getState(){
+    public State getState(){
         return state;
     }
 
@@ -101,7 +113,7 @@ public class Barber implements ObservableBarber, Runnable{
      * Sets the customer of this barber.
      * @param customer the customer to cut the hair of.
      */
-    public synchronized void setCustomer(Customer customer){
+    public void setCustomer(Customer customer){
         checkIfObjectIsNull(customer, "customer");
         this.state = State.WORKING;
         this.customer = customer;
@@ -147,13 +159,21 @@ public class Barber implements ObservableBarber, Runnable{
 
     @Override
     public void alertObservers() {
-        synchronized (Barber.class){
-            for (BarberObserver obs : barberObserverList) {
-                obs.notifyObserver(this);
+        try {
+            Thread.sleep(500);
+            synchronized (Barber.class){
+                for (BarberObserver obs : barberObserverList) {
+                    obs.notifyObserver(this);
+                }
+                if (customer == null){
+                    logger.warning(barberName + " got no customer.");
+                }
+                if (this.state == State.LOOKINGFORWORK && customer == null){
+                    this.state = State.SLEEP;
+                }
             }
-            if (this.state == State.LOOKINGFORWORK){
-                this.state = State.SLEEP;
-            }
+        }catch (InterruptedException exception) {
+            exception.printStackTrace();
         }
     }
 
@@ -161,6 +181,6 @@ public class Barber implements ObservableBarber, Runnable{
      * Notifies this barber. Solves the "syncronized block" problem.
      */
     public synchronized void notifyBarber(){
-        this.notifyAll();
+        this.notify();
     }
 }
