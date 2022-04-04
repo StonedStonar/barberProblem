@@ -57,40 +57,52 @@ public class Barber implements ObservableBarber, Runnable{
     }
 
     @Override
-    public synchronized void run(){
-            while (state != State.FREEDOM){
-                try {
-                    switch (state) {
-                        case LOOKINGFORWORK -> alertObservers();
-                        case WORKING -> cutHair();
-                        default -> {
-                            logger.fine(barberName + " sees no customers and falls asleep.");
-                            wait();
-                            logger.fine(barberName + " wakes up after hearing the sound of a door opening");
+    public synchronized void run() {
+        try {
+            while (checkIfBarberShouldStop()){
+                switch (state) {
+                    case LOOKINGFORWORK -> alertObservers();
+                    case WORKING -> cutHair();
+                    default -> {
+                        logger.log(Level.FINE, "{0} sees no customers and falls asleep.", barberName);
+                        wait();
+                        if (state != State.FREEDOM) {
                             this.state = State.LOOKINGFORWORK;
+                            logger.log(Level.FINE, "{0} wakes up after hearing the sound of a door opening", barberName);
+                        } else {
+                            logger.log(Level.FINE, "{0} wakes up and looks at the clock.", barberName);
                         }
                     }
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
                 }
             }
-            logger.fine(barberName + " goes home for the night.");
+            if (state == State.FREEDOM){
+                logger.log(Level.FINE, "{0} goes home for the night.", barberName);
+            }
+        }catch (InterruptedException exception){
+            logger.log(Level.SEVERE, "{0} has stopped since the thread as interrupted.", barberName);
+        }
+    }
+
+    /**
+     * Checks if the barber should stop.
+     * @return <code>true</code> if the barber should continue working.
+     *         <code>false</code> if the barber should stop working.
+     */
+    public boolean checkIfBarberShouldStop(){
+        return state != State.FREEDOM && !Thread.currentThread().isInterrupted();
     }
 
 
     /**
      * Makes sure that the customers have a delay before next customer get a cut. Delay set to 10 seconds.
+     * @throws InterruptedException gets thrown if the thread is interrupted.
      */
-    public void cutHair() {
+    public void cutHair() throws InterruptedException {
         if (customer != null){
-            try {
-                logger.fine("Cutting the hair of " + customer.getCustomerName() + ".");
-                Thread.sleep(1000);
-                this.state = State.LOOKINGFORWORK;
-                this.customer = null;
-            } catch (InterruptedException exception) {
-                exception.printStackTrace();
-            }
+            logger.log(Level.FINE, "Cutting the hair of {0}." , customer.getCustomerName());
+            Thread.sleep(1000);
+            this.state = State.LOOKINGFORWORK;
+            this.customer = null;
         }
     }
 
@@ -158,29 +170,24 @@ public class Barber implements ObservableBarber, Runnable{
     }
 
     @Override
-    public void alertObservers() {
-        try {
-            Thread.sleep(500);
-            synchronized (Barber.class){
-                for (BarberObserver obs : barberObserverList) {
+    public void alertObservers() throws InterruptedException {
+        Thread.sleep(500);
+        synchronized (Barber.class){
+            for (BarberObserver obs : barberObserverList) {
                     obs.notifyObserver(this);
-                }
-                if (customer == null){
-                    logger.warning(barberName + " got no customer.");
-                }
-                if (this.state == State.LOOKINGFORWORK && customer == null){
-                    this.state = State.SLEEP;
-                }
             }
-        }catch (InterruptedException exception) {
-            exception.printStackTrace();
+            if (this.state == State.LOOKINGFORWORK && customer == null){
+                this.state = State.SLEEP;
+            }
         }
+
     }
 
     /**
      * Notifies this barber. Solves the "syncronized block" problem.
      */
     public synchronized void notifyBarber(){
+        //Todo: Se om dette funker og ellers endre til notify.
         this.notify();
     }
 }

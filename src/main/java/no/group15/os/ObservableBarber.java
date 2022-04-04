@@ -22,5 +22,5 @@ public interface ObservableBarber {
     /**
      * Alerts the observers about a change.
      */
-    void alertObservers();
+    void alertObservers() throws InterruptedException;
 }

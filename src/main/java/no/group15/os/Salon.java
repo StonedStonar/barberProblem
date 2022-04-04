@@ -5,7 +5,6 @@ import no.group15.os.exceptions.CouldNotGetCustomerException;
 import no.group15.os.exceptions.CouldNotRemoveCustomerException;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -45,6 +44,8 @@ public class Salon implements BarberObserver{
         //barbers.add(new Barber("Kjell", State.LOOKINGFORWORK));
         Salon salon = new Salon("Man's breaking back", 5, barbers);
         try {
+            System.out.println("Now adding the first batch of customers. - Will have 5 customers.");
+            Thread.sleep(1000);
             salon.addCustomer(new Customer("Pepe", CustomerState.NEEDSCUT));
             salon.addCustomer(new Customer("Leel", CustomerState.NEEDSCUT));
             for (int i = 0; i < 3; i++){
@@ -52,14 +53,17 @@ public class Salon implements BarberObserver{
             }
             Thread.sleep(15000);
             System.out.println("Now adding the second batch of customers. - Will have 2 more customers that there is seat for.");
+            Thread.sleep(1000);
             for (int i = 0; i < 7; i++){
                 salon.addCustomer(new Customer("Tom " + (i + 5), CustomerState.NEEDSCUT));
             }
             Thread.sleep(15000);
             System.out.println("Now adding the third and last batch of customers. - Will only be 2 people.");
+            Thread.sleep(1000);
             for (int i = 0; i < 2; i++){
                 salon.addCustomer(new Customer("Tom " + (i + 5), CustomerState.NEEDSCUT));
             }
+            salon.stopCustomerIntake();
         }catch (CouldNotAddCustomerException | InterruptedException exception){
             System.err.println("There is no more seats in this saloon.");
         }
@@ -81,15 +85,15 @@ public class Salon implements BarberObserver{
         this.customerList = new ArrayList<>(maxSize);
         this.barbers = barbers;
         this.salonName = salonName;
-        this.closed = true;
+        this.closed = false;
 
 
         //Makes all the barbers start.
         this.executorService = Executors.newFixedThreadPool(barbers.size());
-        barbers.forEach(barber -> {
+        for (Barber barber : barbers) {
             barber.addObserver(this);
             executorService.submit(barber);
-        });
+        }
     }
 
     /**
@@ -100,9 +104,10 @@ public class Salon implements BarberObserver{
     public synchronized void addCustomer(Customer customer) throws CouldNotAddCustomerException {
         checkIfObjectIsNull(customer, "customer");
         if (customerList.size() < 5){
+            logger.log(Level.FINE, "{0} has entered the salon with the name \"{1}\" and sits down in a chair.", new String[]{customer.getCustomerName(), salonName});
             if (!this.customerList.contains(customer)){
                 this.customerList.add(customer);
-                notifyBarbersAboutNewCustomer();
+                notifyBarbers();
             }else {
                 throw new CouldNotAddCustomerException("The customer with the name " + customer.getCustomerName());
             }
@@ -143,10 +148,24 @@ public class Salon implements BarberObserver{
     }
 
     /**
+     * Makes it not possible to add more customers but the barbers has to be done with the ones they currently have
+     * inside.
+     */
+    private void stopCustomerIntake(){
+        this.closed = true;
+    }
+
+    /**
      * Tells every barber that the saloon is closing.
      */
     private void closeSalon(){
+        try {
+            Thread.sleep(5000);
+        }catch (InterruptedException exception){
+            exception.printStackTrace();
+        }
         barbers.forEach(Barber::goHome);
+        executorService.shutdown();
     }
 
     /**
@@ -188,15 +207,22 @@ public class Salon implements BarberObserver{
     }
 
     /**
-     * Notifies the barbers about a new customer at the door.
+     * Notifies the barbers about a new customer at the door or that the saloon closes.
      */
-    private void notifyBarbersAboutNewCustomer(){
+    private void notifyBarbers(){
         barbers.stream().filter(barber -> barber.getState() == State.SLEEP).forEach(Barber::notifyBarber);
         logger.fine("Notifies the barbers");
     }
 
+    /**
+     * Notifies the barbers about a new change.
+     */
+    private void notifyBarbersAboutClosingTheSalon(){
+        barbers.forEach(Barber::notifyBarber);
+    }
+
     @Override
-    public void notifyObserver(Barber barber) {
+    public synchronized void notifyObserver(Barber barber) {
         checkIfObjectIsNull(barber, "barber");
         try {
             Customer customer = getNextCustomer();
@@ -204,6 +230,10 @@ public class Salon implements BarberObserver{
             logger.fine(barber.getBarberName() + " the barberer gets " + customer.getCustomerName());
         }catch (CouldNotGetCustomerException exception){
             logger.fine("There is no customers left.");
+            if (customerList.isEmpty() && closed){
+                logger.log(Level.FINE, "The {0} is closing for the night.", salonName);
+                closeSalon();
+            }
         }catch (CouldNotRemoveCustomerException exception){
             logger.warning("The customer could not be removed.");
         }
