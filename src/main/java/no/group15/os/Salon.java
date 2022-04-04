@@ -27,48 +27,9 @@ public class Salon implements BarberObserver{
 
     private boolean closed;
 
-    private int maxSize;
+    private final Logger logger;
 
-    private Logger logger;
-
-    private ExecutorService executorService;
-
-    public static void main(String[] args) {
-
-        List<Barber> barbers = new ArrayList<>();
-        Logger log = Logger.getLogger(Salon.class.getName());
-        ConsoleHandler handler = new ConsoleHandler();
-        handler.setLevel(Level.ALL);
-        log.addHandler(handler);
-        Barber.setConsole();
-        barbers.add(new Barber("Bjarne", State.LOOKINGFORWORK));
-        //barbers.add(new Barber("Kjell", State.LOOKINGFORWORK));
-        Salon salon = new Salon("Man's breaking back", 5, barbers);
-        try {
-            System.out.println("Now adding the first batch of customers. - Will have 5 customers.");
-            Thread.sleep(1000);
-            salon.addCustomer(new Customer("Pepe", CustomerState.NEEDSCUT));
-            salon.addCustomer(new Customer("Leel", CustomerState.NEEDSCUT));
-            for (int i = 0; i < 3; i++){
-                salon.addCustomer(new Customer("Tom " + i, CustomerState.NEEDSCUT));
-            }
-            Thread.sleep(15000);
-            System.out.println("Now adding the second batch of customers. - Will have 2 more customers that there is seat for.");
-            Thread.sleep(1000);
-            for (int i = 0; i < 7; i++){
-                salon.addCustomer(new Customer("Tom " + (i + 3), CustomerState.NEEDSCUT));
-            }
-            Thread.sleep(15000);
-            System.out.println("Now adding the third and last batch of customers. - Will only be 2 people.");
-            Thread.sleep(1000);
-            for (int i = 0; i < 2; i++){
-                salon.addCustomer(new Customer("Tom " + (i + 10), CustomerState.NEEDSCUT));
-            }
-            salon.stopCustomerIntake();
-        }catch (CouldNotAddCustomerException | InterruptedException exception){
-            log.log(Level.SEVERE, "There is no more seats in this saloon. 2");
-        }
-    }
+    private final ExecutorService executorService;
 
     /**
      * Makes an instance of the Salon class.
@@ -82,7 +43,6 @@ public class Salon implements BarberObserver{
         checkIfObjectIsNull(barbers, "barbers");
         this.logger = Logger.getLogger(getClass().getName());
         logger.setLevel(Level.ALL);
-        this.maxSize = maxSize;
         this.customerList = new ArrayList<>(maxSize);
         this.barbers = barbers;
         this.salonName = salonName;
@@ -152,7 +112,7 @@ public class Salon implements BarberObserver{
      * Makes it not possible to add more customers but the barbers has to be done with the ones they currently have
      * inside.
      */
-    private void stopCustomerIntake(){
+    public void stopCustomerIntake(){
         this.closed = true;
     }
 
