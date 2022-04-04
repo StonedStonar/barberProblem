@@ -9,7 +9,7 @@ import java.util.logging.Logger;
 
 /**
  * Represents the barber class. The barber uses all the methods listed bellow.
- * @author Kenneth Johansen Misund.
+ * @author Kenneth Johansen Misund && Steinar Hjelle Midthus
  * @version 0.1
  */
 public class Barber implements ObservableBarber, Runnable{
@@ -77,6 +77,7 @@ public class Barber implements ObservableBarber, Runnable{
             }
             if (state == State.FREEDOM){
                 logger.log(Level.FINE, "{0} goes home for the night.", barberName);
+                barberObserverList.clear();
             }
         }catch (InterruptedException exception){
             logger.log(Level.SEVERE, "{0} has stopped since the thread as interrupted.", barberName);
@@ -172,22 +173,18 @@ public class Barber implements ObservableBarber, Runnable{
     @Override
     public void alertObservers() throws InterruptedException {
         Thread.sleep(500);
-        synchronized (Barber.class){
-            for (BarberObserver obs : barberObserverList) {
-                    obs.notifyObserver(this);
-            }
-            if (this.state == State.LOOKINGFORWORK && customer == null){
-                this.state = State.SLEEP;
-            }
+        for (BarberObserver obs : barberObserverList) {
+            obs.notifyObserver(this);
         }
-
+        if (this.state == State.LOOKINGFORWORK && customer == null){
+            this.state = State.SLEEP;
+        }
     }
 
     /**
      * Notifies this barber. Solves the "syncronized block" problem.
      */
     public synchronized void notifyBarber(){
-        //Todo: Se om dette funker og ellers endre til notify.
         this.notify();
     }
 }

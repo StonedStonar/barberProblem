@@ -8,6 +8,7 @@ package no.group15.os;
 public class Customer {
 
     private CustomerState state;
+
     private final String customerName;
 
     /**

@@ -13,7 +13,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * @author Steinar Hjelle Midthus
+ * Represents a salon where people can come and get their haircut.
+ * @author Steinar Hjelle Midthus && Kenneth Misund
  * @version 0.1
  */
 public class Salon implements BarberObserver{
@@ -55,17 +56,17 @@ public class Salon implements BarberObserver{
             System.out.println("Now adding the second batch of customers. - Will have 2 more customers that there is seat for.");
             Thread.sleep(1000);
             for (int i = 0; i < 7; i++){
-                salon.addCustomer(new Customer("Tom " + (i + 5), CustomerState.NEEDSCUT));
+                salon.addCustomer(new Customer("Tom " + (i + 3), CustomerState.NEEDSCUT));
             }
             Thread.sleep(15000);
             System.out.println("Now adding the third and last batch of customers. - Will only be 2 people.");
             Thread.sleep(1000);
             for (int i = 0; i < 2; i++){
-                salon.addCustomer(new Customer("Tom " + (i + 5), CustomerState.NEEDSCUT));
+                salon.addCustomer(new Customer("Tom " + (i + 10), CustomerState.NEEDSCUT));
             }
             salon.stopCustomerIntake();
         }catch (CouldNotAddCustomerException | InterruptedException exception){
-            System.err.println("There is no more seats in this saloon.");
+            log.log(Level.SEVERE, "There is no more seats in this saloon. 2");
         }
     }
 
@@ -99,7 +100,7 @@ public class Salon implements BarberObserver{
     /**
      * Adds a customer to the salon if there is space.
      * @param customer the customer to add.
-     * @throws CouldNotAddCustomerException gets thrown if the customer could not be added.
+     * @throws CouldNotAddCustomerException gets thrown if the customer is already in the salon.
      */
     public synchronized void addCustomer(Customer customer) throws CouldNotAddCustomerException {
         checkIfObjectIsNull(customer, "customer");
@@ -160,7 +161,7 @@ public class Salon implements BarberObserver{
      */
     private void closeSalon(){
         try {
-            Thread.sleep(5000);
+            Thread.sleep(2000);
         }catch (InterruptedException exception){
             exception.printStackTrace();
         }
@@ -231,7 +232,7 @@ public class Salon implements BarberObserver{
         }catch (CouldNotGetCustomerException exception){
             logger.fine("There is no customers left.");
             if (customerList.isEmpty() && closed){
-                logger.log(Level.FINE, "The {0} is closing for the night.", salonName);
+                logger.log(Level.FINE, "The \"{0}\" is closing for the night.", salonName);
                 closeSalon();
             }
         }catch (CouldNotRemoveCustomerException exception){
