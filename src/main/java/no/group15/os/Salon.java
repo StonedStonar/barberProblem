@@ -9,6 +9,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -34,22 +35,35 @@ public class Salon implements BarberObserver{
 
     private final ExecutorService executorService;
 
+    private int time;
+
     /**
      * Makes an instance of the Salon class.
      * @param salonName the name of the salon.
      * @param maxSize the max size of the salon.
      * @param barbers a list with all the barbers.
+     * @param time the time this salon should wait.
+     * @param logging true if It's supposed to log all activities.
      */
-    public Salon(String salonName, int maxSize, List<Barber> barbers) {
+    public Salon(String salonName, int maxSize, List<Barber> barbers, int time, boolean logging) {
         checkString(salonName, "salon name");
         checkIfNumberIsAboveZero(maxSize, "the max size");
         checkIfObjectIsNull(barbers, "barbers");
-        this.logger = Logger.getLogger(getClass().getName());
+        if (time < 0){
+            throw new IllegalArgumentException("The time cannot be under or equal to zero.");
+        }
         this.customerList = new ArrayList<>(maxSize);
         this.barbers = barbers;
         this.salonName = salonName;
         this.closed = false;
         this.maxSize = maxSize;
+        this.time = time;
+        this.logger = Logger.getLogger(getClass().getName());
+        if (logging){
+            logger.setLevel(Level.ALL);
+        }else {
+            logger.setLevel(Level.OFF);
+        }
 
 
         //Makes all the barbers start.
@@ -129,6 +143,7 @@ public class Salon implements BarberObserver{
      */
     public void stopCustomerIntake(){
         this.closed = true;
+        notifyBarbers();
     }
 
     /**
@@ -163,15 +178,15 @@ public class Salon implements BarberObserver{
     /**
      * Tells every barber that the saloon is closing.
      */
-    private void closeSalon(){
+    private void closeSalon() {
+        //Todo: Gjør dette så alle tråder dør uansett og programmet kan avslutte. Om man ikke skrur den av kan
+        // programmet kjøre i bakgrunnen og ta resusser.
         try {
-            //Får tråden til å sove 2 sekunder.
-            Thread.sleep(2000);
+            Thread.sleep(time);
         }catch (InterruptedException exception){
-            exception.printStackTrace();
+            System.out.println("FAILED TO SHUT DOWN THE SALOON");
         }
         notifyBarbersAboutClosingTheSalon();
-        //Todo: Gjør dette så alle tråder dør uansett og programmet kan avslutte.
         executorService.shutdown();
     }
 
@@ -227,12 +242,12 @@ public class Salon implements BarberObserver{
      * Notifies the barbers about a new change.
      */
     private void notifyBarbersAboutClosingTheSalon(){
-        barbers.forEach(barber -> {
-            barber.goHome();
-            barber.notifyBarber();
-        });
+        barbers.stream().filter(barber -> barber.getState() != State.FREEDOM).forEach(Barber::goHome);
+        barbers.stream().filter(barber -> barber.getState() == State.SLEEP).forEach(Barber::notifyBarber);
     }
 
+    //Todo: Bruker "synchronized" så bare et av objektene som kaller funksjonen kan bruke den av gangen. Dette er per
+    // instans av denne klassen.
     @Override
     public synchronized void notifyObserver(Barber barber) {
         checkIfObjectIsNull(barber, "barber");
@@ -242,7 +257,7 @@ public class Salon implements BarberObserver{
             logger.fine(barber.getBarberName() + " the barberer gets " + customer.getCustomerName());
         }catch (CouldNotGetCustomerException exception){
             logger.fine("There is no customers left.");
-            if (customerList.isEmpty() && closed){
+            if (customerList.isEmpty() && closed && barber.getState() != State.FREEDOM){
                 logger.log(Level.FINE, "The \"{0}\" is closing for the night.", salonName);
                 closeSalon();
             }

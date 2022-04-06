@@ -1,7 +1,7 @@
 package no.group15.os;
 
 /**
- * Represents an object that can report to observers about changes.
+ * Represents an object that can report to observers about changes. Using the designpattern "observer".
  * @author Group 13
  * @version 0.1
  */

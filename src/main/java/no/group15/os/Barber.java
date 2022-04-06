@@ -24,8 +24,6 @@ public class Barber implements ObservableBarber, Runnable{
 
     private final int timePerCut;
 
-    private final int time;
-
     private final List<BarberObserver> barberObserverList;
 
 
@@ -34,17 +32,21 @@ public class Barber implements ObservableBarber, Runnable{
      * @param name the name of this barber.
      * @param state the state of this barber.
      * @param time in milliseconds.
+     * @param logging true if It's supposed to log all activities.
      */
-    public Barber(String name, State state, int time) {
+    public Barber(String name, State state, int time, boolean logging) {
         this.logger = Logger.getLogger(getClass().getName());
         checkString(name, "salon name");
         if (time <= 0){
             throw new IllegalArgumentException("The number cannot be equal to or less than 0");
         }
         this.barberName = name;
-        this.time = time;
-        this.timePerCut = time*2;
-        logger.setLevel(Level.ALL);
+        this.timePerCut = time;
+        if (logging){
+            logger.setLevel(Level.ALL);
+        }else {
+            logger.setLevel(Level.OFF);
+        }
 
         checkIfObjectIsNull(state, "state");
 
@@ -103,7 +105,7 @@ public class Barber implements ObservableBarber, Runnable{
      * @return <code>true</code> if the barber has a customer.
      *         <code>false</code> if the barber does not have a customer.
      */
-    public synchronized boolean hasCustomer(){
+    public boolean hasCustomer(){
         return customer != null;
     }
 
@@ -124,7 +126,7 @@ public class Barber implements ObservableBarber, Runnable{
     public void cutHair() throws InterruptedException {
         if (customer != null){
             logger.log(Level.FINE, "Cutting the hair of {0}." , customer.getCustomerName());
-            Thread.sleep(timePerCut*4);
+            Thread.sleep(timePerCut);
             this.state = State.LOOKINGFORWORK;
             this.customer.setState(CustomerState.NORMAL);
             customer.notifyCustomer();
@@ -135,8 +137,10 @@ public class Barber implements ObservableBarber, Runnable{
     /**
      * Makes the barber go home for the night.
      */
-    public synchronized void goHome(){
-        this.state = State.FREEDOM;
+    public void goHome(){
+        synchronized (state){
+            this.state = State.FREEDOM;
+        }
     }
 
     /**
@@ -197,7 +201,6 @@ public class Barber implements ObservableBarber, Runnable{
 
     @Override
     public void alertObservers() throws InterruptedException {
-        Thread.sleep(500);
         for (BarberObserver obs : barberObserverList) {
             obs.notifyObserver(this);
         }
@@ -210,6 +213,8 @@ public class Barber implements ObservableBarber, Runnable{
      * Notifies this barber. Solves the "syncronized block" problem.
      */
     public synchronized void notifyBarber(){
-        this.notify();
+        if (this.state == State.SLEEP){
+            notify();
+        }
     }
 }

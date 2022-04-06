@@ -23,9 +23,13 @@ public class Customer implements Runnable{
 
     /**
      * Makes an instance of the Customer class.
+     * @param state the starting state of the customer.
+     * @param customerName the name of the customer
+     * @param salon the salon the customer should go to.
+     * @param logging true if this is supposed to be logging. False otherwise.
      */
 
-    public Customer(String customerName, CustomerState state, Salon salon) {
+    public Customer(String customerName, CustomerState state, Salon salon, boolean logging) {
         checkString(customerName, "Name of customer");
         checkIfObjectIsNull(state, "state");
         checkIfObjectIsNull(salon, "salon");
@@ -34,7 +38,11 @@ public class Customer implements Runnable{
         this.state = state;
         this.salon = salon;
         this.logger = Logger.getLogger(getClass().getName());
-        logger.setLevel(Level.ALL);
+        if (logging){
+            logger.setLevel(Level.ALL);
+        }else {
+            logger.setLevel(Level.OFF);
+        }
     }
 
     /**
@@ -103,7 +111,7 @@ public class Customer implements Runnable{
     public synchronized void run() {
         try {
             salon.addCustomer(this);
-            logger.log(Level.FINE, "{0} has entered the store.");
+            logger.log(Level.FINE, "{0} has entered the store.", customerName);
             while (state != CustomerState.NORMAL && !Thread.interrupted()){
                 wait();
             }
@@ -125,6 +133,6 @@ public class Customer implements Runnable{
      */
     public synchronized void notifyCustomer(){
         this.state = CustomerState.NORMAL;
-        this.notify();
+        notify();
     }
 }

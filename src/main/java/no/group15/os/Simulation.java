@@ -25,11 +25,14 @@ public class Simulation {
     //Todo: Bruker executorservice siden det er et threadpool og man kan dermed stanse trådene om det skjer noe galt.
     private static ExecutorService executorService;
 
+    //Todo: Sier bare om vi skal logge data eller ikke. Can it go faster without?
+    private static boolean logging;
+
 
     //Todo: Under er en liste med keywords det er greit å kunne som står foran metoder.
     // private void test() - Da kan bare klassen eller instanser av klassen se metodene.
     // public void test() - Med public kan alle se metodene og bruke dem. Bruk enten private eller public.
-    // void test() - Nå er metoden "package private" og bare klasser i pakken kan se den. Ikke bruk denne.
+    // void test() - Nå er metoden "package private" og bare klasser i pakken kan se den. Skriv alltid public eller private.
     // private void static main() - Metoden kan nå brukes bare internt av klassen men alle objektene kan bruke denne.
     //                              Alle "statiske" variabler og metoder gjelder for hele klasssen.
 
@@ -42,32 +45,43 @@ public class Simulation {
      */
     public static void startSimulation(){
         customerList = new ArrayList<>();
-        //The amount of delay in ms for the long pause.
-        //1500
-        longTime = 15;
         //The amount of delay in ms for the short pause.
-        //1500
-        shortTime = 10;
+        //10 for short run time.
+        //500-2000 for more of a simulation
+        //500 if running many barbers.
+        shortTime = 500;
+        //The amount of delay in ms for the long pause.
+        //Long time is 10*short delay
+        //Alter on your own risk
+        longTime = shortTime * 10;
+
+        logging = true;
         setConsoles();
-        List<Barber> barbers = addNAmountOfBarbers(5);
-        int maxSize = 100;
-        Salon salon = new Salon("Man's breaking back", maxSize, barbers);
-        int totalAmountOfThreads = maxSize * 3 + 2;
+        //1 barber per 5 customers.
+        //Tested for up to 10 - 40 barbers and 200 customers. But have not checked if all the results are optimal.
+        //Increase on your own risk.
+        //Crazy mode is maybe 200 barbers and 1000 customers. But can it go higher? Yes, but..
+        int amountOfBarbers = 1;
+        List<Barber> barbers = addNAmountOfBarbers(amountOfBarbers);
+        int maxSize = amountOfBarbers*5;
+        Salon salon = new Salon("Man's breaking back", maxSize, barbers, shortTime, logging);
+        int totalAmountOfThreads = maxSize * 4;
+        //Todo: Lager et threadpool som er på størrelsen med antall kunder man kan forvente.
         executorService = Executors.newFixedThreadPool(totalAmountOfThreads);
         try {
-            //Starter å legge til kunder og tar det i puljer.
+            //Starter å legge til kunder og tar det i faser.
+            sleepShort();
             startPhaseOne(salon, maxSize);
             sleepLong();
             startPhaseTwo(salon, maxSize);
             sleepLong();
             startPhaseThree(salon);
 
-            //Todo: Siden kundene selv legger seg til trenger vi noen ms pause så de ikke blir utestengt med en gang.
+            //Todo: Siden kundene selv går inn i "salongen" trenger vi noen ms pause så de ikke blir utestengt med en gang.
             sleepShort();
             salon.stopCustomerIntake();
             //Stopper salongen fra å ta imot nye kunder. Dette vil si at de må gjøre seg "ferdige" med kunder som allerede
             //sitter i en ventestol før de kan gå om dagen.
-            Thread.sleep(1000);
             startPhaseFour(salon, maxSize);
             closeSaloon(salon);
         }catch (InterruptedException exception){
@@ -83,11 +97,16 @@ public class Simulation {
     private static void closeSaloon(Salon salon) throws InterruptedException {
         boolean closed = false;
         do {
-            Thread.sleep(1000);
+            Thread.sleep(2000);
             closed = salon.isClosedAndBarbersHasGoneHome();
         }while (!closed && !Thread.interrupted());
         System.out.println("The salon has now closed and all barbers has gone home.");
         executorService.shutdown();
+        sleepLong();
+        long amountOfServiced = customerList.stream().filter(customer -> customer.getCustomerState() == CustomerState.NORMAL).count();
+        long notServiced = customerList.stream().filter(customer -> customer.getCustomerState() == CustomerState.NEEDSCUT).count();
+        System.out.println(amountOfServiced + " customers got their hair cut.");
+        System.out.println(notServiced + " customers not serviced.");
     }
 
     /**
@@ -98,7 +117,8 @@ public class Simulation {
     private static List<Barber> addNAmountOfBarbers(int amountOfBarbers){
         List<Barber> barbers = new ArrayList<>();
         for (int i = 0; i < amountOfBarbers; i++){
-            barbers.add(new Barber("Bjarne " + i, State.LOOKINGFORWORK, shortTime));
+            //Logging here must be on. Otherwise the program suddenly stops.
+            barbers.add(new Barber("Bjarne " + i, State.LOOKINGFORWORK, shortTime, true));
         }
         return barbers;
     }
@@ -155,7 +175,7 @@ public class Simulation {
      */
     private static void addNAmountOfCustomers(Salon salon, int amountN, String name) {
         for (int i = 0; i < amountN; i++){
-            Customer customer = new Customer(name + " " + i, CustomerState.NEEDSCUT, salon);
+            Customer customer = new Customer(name + " " + i, CustomerState.NEEDSCUT, salon, logging);
             customerList.add(customer);
             //Kundene is seg selv legger seg selv til. Så ingen "add" på salon.
             executorService.submit(customer);

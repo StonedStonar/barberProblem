@@ -1,7 +1,7 @@
 package no.group15.os;
 
 /**
- * Represents an object that wants update on a barber.
+ * Represents an object that wants update on a barber. Using the designpattern "observer"
  * @author Group 13
  * @version 0.1
  */
