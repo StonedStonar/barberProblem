@@ -43,12 +43,14 @@ public class Simulation {
     public static void startSimulation(){
         customerList = new ArrayList<>();
         //The amount of delay in ms for the long pause.
-        longTime = 15000;
+        //1500
+        longTime = 15;
         //The amount of delay in ms for the short pause.
-        shortTime = 1000;
+        //1500
+        shortTime = 10;
         setConsoles();
-        List<Barber> barbers = addNAmountOfBarbers(1);
-        int maxSize = 5;
+        List<Barber> barbers = addNAmountOfBarbers(5);
+        int maxSize = 100;
         Salon salon = new Salon("Man's breaking back", maxSize, barbers);
         int totalAmountOfThreads = maxSize * 3 + 2;
         executorService = Executors.newFixedThreadPool(totalAmountOfThreads);
@@ -59,9 +61,12 @@ public class Simulation {
             startPhaseTwo(salon, maxSize);
             sleepLong();
             startPhaseThree(salon);
+
+            //Todo: Siden kundene selv legger seg til trenger vi noen ms pause så de ikke blir utestengt med en gang.
+            sleepShort();
+            salon.stopCustomerIntake();
             //Stopper salongen fra å ta imot nye kunder. Dette vil si at de må gjøre seg "ferdige" med kunder som allerede
             //sitter i en ventestol før de kan gå om dagen.
-            salon.stopCustomerIntake();
             Thread.sleep(1000);
             startPhaseFour(salon, maxSize);
             closeSaloon(salon);
@@ -93,7 +98,7 @@ public class Simulation {
     private static List<Barber> addNAmountOfBarbers(int amountOfBarbers){
         List<Barber> barbers = new ArrayList<>();
         for (int i = 0; i < amountOfBarbers; i++){
-            barbers.add(new Barber("Bjarne " + i, State.LOOKINGFORWORK));
+            barbers.add(new Barber("Bjarne " + i, State.LOOKINGFORWORK, shortTime));
         }
         return barbers;
     }
@@ -161,8 +166,10 @@ public class Simulation {
      * Adds n amount of customers after the salon has closed.
      * @param salon the saloon.
      * @param maxSize the max size.
+     * @throws InterruptedException gets thrown if the thread is interrupted.
      */
-    private static void startPhaseFour(Salon salon, int maxSize){
+    private static void startPhaseFour(Salon salon, int maxSize) throws InterruptedException {
+        sleepShort();
         System.out.println("Starting the last phase after the two last customers of the day was added. - Supposed to fail");
         addNAmountOfCustomers(salon, maxSize, "Late Lars");
     }

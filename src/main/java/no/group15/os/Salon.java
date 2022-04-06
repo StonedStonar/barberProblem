@@ -28,6 +28,8 @@ public class Salon implements BarberObserver{
 
     private boolean closed;
 
+    private int maxSize;
+
     private final Logger logger;
 
     private final ExecutorService executorService;
@@ -47,6 +49,7 @@ public class Salon implements BarberObserver{
         this.barbers = barbers;
         this.salonName = salonName;
         this.closed = false;
+        this.maxSize = maxSize;
 
 
         //Makes all the barbers start.
@@ -75,7 +78,7 @@ public class Salon implements BarberObserver{
     public synchronized void addCustomer(Customer customer) throws CouldNotAddCustomerException {
         checkIfObjectIsNull(customer, "customer");
         if (!closed){
-            if (customerList.size() < 5){
+            if (customerList.size() < maxSize){
                 logger.log(Level.FINE, "{0} has entered the salon with the name \"{1}\" and sits down in a chair.", new String[]{customer.getCustomerName(), salonName});
                 if (!this.customerList.contains(customer)){
                     this.customerList.add(customer);
@@ -224,7 +227,10 @@ public class Salon implements BarberObserver{
      * Notifies the barbers about a new change.
      */
     private void notifyBarbersAboutClosingTheSalon(){
-        barbers.forEach(Barber::notifyBarber);
+        barbers.forEach(barber -> {
+            barber.goHome();
+            barber.notifyBarber();
+        });
     }
 
     @Override

@@ -22,6 +22,10 @@ public class Barber implements ObservableBarber, Runnable{
 
     private final Logger logger;
 
+    private final int timePerCut;
+
+    private final int time;
+
     private final List<BarberObserver> barberObserverList;
 
 
@@ -29,14 +33,21 @@ public class Barber implements ObservableBarber, Runnable{
      * Makes an instance of the Barber class.
      * @param name the name of this barber.
      * @param state the state of this barber.
+     * @param time in milliseconds.
      */
-    public Barber(String name, State state) {
+    public Barber(String name, State state, int time) {
         this.logger = Logger.getLogger(getClass().getName());
         checkString(name, "salon name");
+        if (time <= 0){
+            throw new IllegalArgumentException("The number cannot be equal to or less than 0");
+        }
         this.barberName = name;
+        this.time = time;
+        this.timePerCut = time*2;
         logger.setLevel(Level.ALL);
 
         checkIfObjectIsNull(state, "state");
+
         this.state = state;
         this.barberObserverList = new ArrayList<>();
     }
@@ -113,7 +124,7 @@ public class Barber implements ObservableBarber, Runnable{
     public void cutHair() throws InterruptedException {
         if (customer != null){
             logger.log(Level.FINE, "Cutting the hair of {0}." , customer.getCustomerName());
-            Thread.sleep(1000);
+            Thread.sleep(timePerCut*4);
             this.state = State.LOOKINGFORWORK;
             this.customer.setState(CustomerState.NORMAL);
             customer.notifyCustomer();

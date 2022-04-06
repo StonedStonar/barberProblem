@@ -34,6 +34,7 @@ public class Customer implements Runnable{
         this.state = state;
         this.salon = salon;
         this.logger = Logger.getLogger(getClass().getName());
+        logger.setLevel(Level.ALL);
     }
 
     /**
@@ -102,6 +103,7 @@ public class Customer implements Runnable{
     public synchronized void run() {
         try {
             salon.addCustomer(this);
+            logger.log(Level.FINE, "{0} has entered the store.");
             while (state != CustomerState.NORMAL && !Thread.interrupted()){
                 wait();
             }
@@ -113,7 +115,7 @@ public class Customer implements Runnable{
             logger.log(Level.WARNING, "The customer has stopped since it was interrupted.");
         }else if (state == CustomerState.NORMAL){
             logger.log(Level.FINE, "{0} leaves the salon with a new haircut.", customerName);
-        }else {
+        }else if (state == CustomerState.NEEDSCUT){
             logger.log(Level.FINE, "{0} left without a haircut.", customerName);
         }
     }
