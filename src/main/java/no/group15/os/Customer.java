@@ -1,26 +1,39 @@
 package no.group15.os;
 
+import no.group15.os.exceptions.CouldNotAddCustomerException;
+
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 /**
  * The Customer class holds the information for a customer.
- * @author Kenneth Johansen Misund
+ * @author Group 13
  * @version 0.1
  */
-public class Customer {
+public class Customer implements Runnable{
 
     private CustomerState state;
 
     private final String customerName;
 
+    private final Salon salon;
+
+    private Logger logger;
+
     /**
      * Makes an instance of the Customer class.
      */
 
-    public Customer(String customerName, CustomerState state) {
+    public Customer(String customerName, CustomerState state, Salon salon) {
         checkString(customerName, "Name of customer");
         checkIfObjectIsNull(state, "state");
+        checkIfObjectIsNull(salon, "salon");
         this.customerName = customerName;
 
         this.state = state;
+        this.salon = salon;
+        this.logger = Logger.getLogger(getClass().getName());
     }
 
     /**
@@ -43,7 +56,7 @@ public class Customer {
      * Sets the customers state.
      * @param state return state.
      */
-    public void setState(CustomerState state) {
+    public synchronized void setState(CustomerState state) {
         checkIfObjectIsNull(state, "state");
         this.state = state;
     }
@@ -64,7 +77,6 @@ public class Customer {
 
     /**
      * Checks if an object is null.
-     *
      * @param object the object you want to check.
      * @param error  the error message the exception should have.
      * @throws IllegalArgumentException gets thrown if the object is null.
@@ -73,5 +85,44 @@ public class Customer {
         if (object == null) {
             throw new IllegalArgumentException("The " + error + " cannot be null.");
         }
+    }
+
+    /**
+     * Used to make the logger messages in the console visible.
+     */
+    public static void setConsole(){
+        Logger logger = Logger.getLogger(Customer.class.getName());
+        ConsoleHandler handler = new ConsoleHandler();
+        handler.setLevel(Level.ALL);
+        logger.addHandler(handler);
+    }
+
+
+    @Override
+    public synchronized void run() {
+        try {
+            salon.addCustomer(this);
+            while (state != CustomerState.NORMAL && !Thread.interrupted()){
+                wait();
+            }
+        }catch (CouldNotAddCustomerException exception){
+        }catch (InterruptedException exception){
+            logger.log(Level.FINE, "The customer was interrupted while they where sleeping.");
+        }
+        if (Thread.interrupted()){
+            logger.log(Level.WARNING, "The customer has stopped since it was interrupted.");
+        }else if (state == CustomerState.NORMAL){
+            logger.log(Level.FINE, "{0} leaves the salon with a new haircut.", customerName);
+        }else {
+            logger.log(Level.FINE, "{0} left without a haircut.", customerName);
+        }
+    }
+
+    /**
+     * Notifies the customer that they are done with their haircut.
+     */
+    public synchronized void notifyCustomer(){
+        this.state = CustomerState.NORMAL;
+        this.notify();
     }
 }

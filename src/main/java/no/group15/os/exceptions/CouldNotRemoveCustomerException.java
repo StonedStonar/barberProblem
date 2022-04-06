@@ -4,7 +4,7 @@ import java.io.Serializable;
 
 /**
  * CouldNotRemoveCustomerException represents an exception that gets thrown when a customer could not be removed.
- * @author Kenneth Johansen Misund
+ * @author Group 13
  * @version 0.1
  */
 public class CouldNotRemoveCustomerException extends Exception implements Serializable {

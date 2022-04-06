@@ -5,6 +5,7 @@ import no.group15.os.exceptions.CouldNotGetCustomerException;
 import no.group15.os.exceptions.CouldNotRemoveCustomerException;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -14,7 +15,7 @@ import java.util.logging.Logger;
 
 /**
  * Represents a salon where people can come and get their haircut.
- * @author Steinar Hjelle Midthus && Kenneth Misund
+ * @author Group 13
  * @version 0.1
  */
 public class Salon implements BarberObserver{
@@ -42,7 +43,6 @@ public class Salon implements BarberObserver{
         checkIfNumberIsAboveZero(maxSize, "the max size");
         checkIfObjectIsNull(barbers, "barbers");
         this.logger = Logger.getLogger(getClass().getName());
-        logger.setLevel(Level.ALL);
         this.customerList = new ArrayList<>(maxSize);
         this.barbers = barbers;
         this.salonName = salonName;
@@ -58,25 +58,37 @@ public class Salon implements BarberObserver{
     }
 
     /**
+     * Used to make the logger messages in the console visible.
+     */
+    public static void setConsole(){
+        Logger log = Logger.getLogger(Salon.class.getName());
+        ConsoleHandler handler = new ConsoleHandler();
+        handler.setLevel(Level.ALL);
+        log.addHandler(handler);
+    }
+
+    /**
      * Adds a customer to the salon if there is space.
      * @param customer the customer to add.
      * @throws CouldNotAddCustomerException gets thrown if the customer is already in the salon.
      */
     public synchronized void addCustomer(Customer customer) throws CouldNotAddCustomerException {
         checkIfObjectIsNull(customer, "customer");
-        if (customerList.size() < 5){
-            logger.log(Level.FINE, "{0} has entered the salon with the name \"{1}\" and sits down in a chair.", new String[]{customer.getCustomerName(), salonName});
-            if (!this.customerList.contains(customer)){
-                this.customerList.add(customer);
-                notifyBarbers();
-            }else {
-                throw new CouldNotAddCustomerException("The customer with the name " + customer.getCustomerName());
+        if (!closed){
+            if (customerList.size() < 5){
+                logger.log(Level.FINE, "{0} has entered the salon with the name \"{1}\" and sits down in a chair.", new String[]{customer.getCustomerName(), salonName});
+                if (!this.customerList.contains(customer)){
+                    this.customerList.add(customer);
+                    notifyBarbers();
+                }else {
+                    throw new CouldNotAddCustomerException("The customer with the name " + customer.getCustomerName() + " could not be added.");
+                }
+            }else{
+                logger.warning("There is too many customers right now..");
             }
-        }else{
-            //Todo: Do something...
-            logger.warning("There is too many customers right now..");
+        }else {
+            throw new CouldNotAddCustomerException("The customer with the name " + customer.getCustomerName() + " turned in the door since the saloon is closed.");
         }
-
     }
 
     /**
@@ -117,15 +129,46 @@ public class Salon implements BarberObserver{
     }
 
     /**
+     * Checks if the store has closed and all barbers has gone home.
+     * @return <code>true</code> if all the barbers has gone home.
+     *         <code>false</code> if one of the barbers are still working.
+     */
+    public boolean isClosedAndBarbersHasGoneHome(){
+        boolean valid;
+        //Todo: Her har vi en while loop som sjekker det samme som en stream gjør nederst. Har ikke sjekket at den funker 100%
+        // but is 99% sure.
+//        Iterator<Barber> barberIterator = barbers.iterator();
+//        int amountOfBarbersAtHome = 0;
+//        //Spør om den har neste og går videre.
+//        while (barberIterator.hasNext()){
+//            //Tar ut neste barber
+//            Barber barber = barberIterator.next();
+//            //Sjekker staten dems og om de ikke har en kunde.
+//            if (barber.getState() == State.FREEDOM && !barber.hasCustomer()){
+//                amountOfBarbersAtHome++;
+//            }
+//        }
+//        valid = barbers.size() == amountOfBarbersAtHome && closed;
+        //Todo: Og her har vi streamen. En stream tar alt i en liste og har det i en "kø" hvor man kan gjøre ulike
+        // operasjoner. Under sier vi at alle skal matche landautrykket som er etter "->". Hvis en av dem ikke macher
+        // gir den false. Alle barbers skal være ferdige på jobb og ikke ha noen kunder før de kan gå hjem.
+        // istedet for å skrive 10 linjer kan man skrive en. Samtidig må salongen også være "stengt" med "&& closed"
+        valid = barbers.stream().allMatch(barber -> barber.getState() == State.FREEDOM && !barber.hasCustomer()) && closed;
+        return valid;
+    }
+
+    /**
      * Tells every barber that the saloon is closing.
      */
     private void closeSalon(){
         try {
+            //Får tråden til å sove 2 sekunder.
             Thread.sleep(2000);
         }catch (InterruptedException exception){
             exception.printStackTrace();
         }
-        barbers.forEach(Barber::goHome);
+        notifyBarbersAboutClosingTheSalon();
+        //Todo: Gjør dette så alle tråder dør uansett og programmet kan avslutte.
         executorService.shutdown();
     }
 
@@ -167,10 +210,12 @@ public class Salon implements BarberObserver{
         }
     }
 
+
     /**
-     * Notifies the barbers about a new customer at the door or that the saloon closes.
+     * Notifies the barbers about a new customer at the door or that the saloon closes. Notifies only the barbers who are sleeping.
      */
     private void notifyBarbers(){
+        //Todo: Bruker filter til å filtrere ut de som ikke sover. Vil bare notifisere de som sover.
         barbers.stream().filter(barber -> barber.getState() == State.SLEEP).forEach(Barber::notifyBarber);
         logger.fine("Notifies the barbers");
     }

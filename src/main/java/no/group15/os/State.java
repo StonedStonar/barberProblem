@@ -1,7 +1,8 @@
 package no.group15.os;
 
 /**
- * @author Steinar Hjelle Midthus
+ * The state of the barber.
+ * @author Group 13
  * @version 0.1
  */
 public enum State {
@@ -25,5 +26,4 @@ public enum State {
      * Represents the state when the barber looks for work.
      */
     LOOKINGFORWORK
-
 }

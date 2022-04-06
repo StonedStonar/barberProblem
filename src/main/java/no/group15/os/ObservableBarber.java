@@ -2,7 +2,7 @@ package no.group15.os;
 
 /**
  * Represents an object that can report to observers about changes.
- * @author Steinar Hjelle Midthus
+ * @author Group 13
  * @version 0.1
  */
 public interface ObservableBarber {

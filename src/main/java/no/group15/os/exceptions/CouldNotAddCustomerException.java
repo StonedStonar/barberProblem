@@ -4,7 +4,7 @@ import java.io.Serializable;
 
 /**
  * CouldNotAddCustomerException represents an exception that gets thrown when a Customer could not be added.
- * @author Kenneth Johansen Misund.
+ * @author Group 13
  * @version 0.1
  */
 public class CouldNotAddCustomerException extends  Exception implements Serializable {

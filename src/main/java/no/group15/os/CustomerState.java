@@ -1,7 +1,8 @@
 package no.group15.os;
 
 /**
- * @author Steinar Hjelle Midthus
+ * Represents the customers state.
+ * @author Group 13
  * @version 0.1
  */
 public enum CustomerState {

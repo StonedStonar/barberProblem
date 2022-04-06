@@ -9,7 +9,7 @@ import java.util.logging.Logger;
 
 /**
  * Represents the barber class. The barber uses all the methods listed bellow.
- * @author Kenneth Johansen Misund && Steinar Hjelle Midthus
+ * @author Group 13
  * @version 0.1
  */
 public class Barber implements ObservableBarber, Runnable{
@@ -41,19 +41,14 @@ public class Barber implements ObservableBarber, Runnable{
         this.barberObserverList = new ArrayList<>();
     }
 
+    /**
+     * Used to make the logger messages in the console visible.
+     */
     public static void setConsole(){
         Logger logger = Logger.getLogger(Barber.class.getName());
         ConsoleHandler handler = new ConsoleHandler();
         handler.setLevel(Level.ALL);
         logger.addHandler(handler);
-    }
-
-    /**
-     * Gets the name of the barber.
-     * @return the name of the barber.
-     */
-    public String getBarberName() {
-        return barberName;
     }
 
     @Override
@@ -85,6 +80,23 @@ public class Barber implements ObservableBarber, Runnable{
     }
 
     /**
+     * Gets the name of the barber.
+     * @return the name of the barber.
+     */
+    public String getBarberName() {
+        return barberName;
+    }
+
+    /**
+     * Gets if this barber has a customer right now.
+     * @return <code>true</code> if the barber has a customer.
+     *         <code>false</code> if the barber does not have a customer.
+     */
+    public synchronized boolean hasCustomer(){
+        return customer != null;
+    }
+
+    /**
      * Checks if the barber should stop.
      * @return <code>true</code> if the barber should continue working.
      *         <code>false</code> if the barber should stop working.
@@ -103,6 +115,8 @@ public class Barber implements ObservableBarber, Runnable{
             logger.log(Level.FINE, "Cutting the hair of {0}." , customer.getCustomerName());
             Thread.sleep(1000);
             this.state = State.LOOKINGFORWORK;
+            this.customer.setState(CustomerState.NORMAL);
+            customer.notifyCustomer();
             this.customer = null;
         }
     }

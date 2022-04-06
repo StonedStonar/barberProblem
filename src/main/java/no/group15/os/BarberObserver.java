@@ -1,8 +1,8 @@
 package no.group15.os;
 
 /**
- * Represents a object that wants update on a barber.
- * @author Steinar Hjelle Midthus
+ * Represents an object that wants update on a barber.
+ * @author Group 13
  * @version 0.1
  */
 public interface BarberObserver {
